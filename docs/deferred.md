@@ -59,7 +59,11 @@ are needed for catalog testing. Latest acceptable deferral is Session 9
 **Resolution:** —
 
 ---
+### N-001 — Probe predicates are non-deterministic
 
+Identified: Session 5, no specific commit
+Severity: Low — tests pass, behaviour correct
+Note: PLUnit emits choicepoint warnings on several probe tests. probe/2 and the convenience predicates (probe_vocabulary/2, probe_gates/2) are non-deterministic as written. If strict determinism is needed, wrapping calls in once/1 or adding cuts would resolve it. Defer until catalog sessions reveal whether this matters in practice.
 ## Resolved
 
 *(none yet)*
