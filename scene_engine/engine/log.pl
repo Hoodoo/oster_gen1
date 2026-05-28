@@ -8,7 +8,8 @@
     tier_transition/4,
     caused_by/2,
     fresh_event_id/1,
-    event_counter/1
+    event_counter/1,
+    update_tier_status/2
 ]).
 
 :- use_module(library(aggregate)).
@@ -52,3 +53,7 @@ hot_events(Events) :-
 
 log_count(N) :-
     aggregate_all(count, arrived(_, _, _, _, _), N).
+
+update_tier_status(EventId, NewTier) :-
+    retract(tier_status(EventId, _)),
+    assertz(tier_status(EventId, NewTier)).
