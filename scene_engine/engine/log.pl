@@ -13,6 +13,7 @@
 
 :- use_module(library(aggregate)).
 :- use_module(clock).
+:- use_module(provenance).
 
 :- dynamic arrived/5.
 % arrived(EventId, Scene, Term, Clock, Tier)
@@ -25,10 +26,6 @@
 
 :- dynamic tier_transition/4.
 % tier_transition(EventId, FromTier, ToTier, Clock)
-
-% STUB: caused_by/2 declaration moves to engine/provenance.pl in Session 2.
-:- dynamic caused_by/2.
-% caused_by(EventId, Cause)
 
 :- dynamic event_counter/1.
 event_counter(0).
