@@ -1,0 +1,11 @@
+# SWI-Prolog
+*.qlf
+.swipl-history
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+*.swp
+*~
