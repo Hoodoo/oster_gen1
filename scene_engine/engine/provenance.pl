@@ -45,11 +45,10 @@ terminal_cause(injected(_)).
 terminal_cause(simulation_boundary(_)).
 
 parent_event(EventId, gate(GateId), ParentId) :-
-    gate_transformed(GateId, ParentId, EventId, _, _), !.
-parent_event(EventId, gate(GateId), ParentId) :-
-    % Untransformed gate: source event not recoverable without gate_transformed.
-    \+ gate_transformed(GateId, _, EventId, _, _),
-    ParentId = unknown_gate_source(GateId).
+    ( gates:gate_transformed(GateId, ParentId, EventId, _, _) -> true
+    ; gates:gate_passed(GateId, ParentId, EventId) -> true
+    ; ParentId = unknown_gate_source(GateId)
+    ).
 parent_event(_EventId, rule(Scene, RuleId), ParentId) :-
     rule_trigger(RuleId, Scene, ParentId), !.
 parent_event(_EventId, rule(Scene, RuleId), unknown_rule_trigger(Scene, RuleId)).

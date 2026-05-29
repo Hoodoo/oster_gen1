@@ -56,7 +56,9 @@ have a second lookup path alongside `gate_transformed/5`.
 are needed for catalog testing. Latest acceptable deferral is Session 9
 (deck catalog) where provenance chain correctness becomes observable in practice.
 
-**Resolution:** —
+**Resolution:** Resolved in Session 8. `gate_passed/3` added to `engine/gates.pl`;
+`parent_event/3` in `provenance.pl` extended to check `gate_passed/3` before
+falling back to `unknown_gate_source`. Commit hash: (fill in after commit).
 
 ---
 ### N-001 — Probe predicates are non-deterministic
