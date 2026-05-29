@@ -66,4 +66,10 @@ Severity: Low — tests pass, behaviour correct
 Note: PLUnit emits choicepoint warnings on several probe tests. probe/2 and the convenience predicates (probe_vocabulary/2, probe_gates/2) are non-deterministic as written. If strict determinism is needed, wrapping calls in once/1 or adding cuts would resolve it. Defer until catalog sessions reveal whether this matters in practice.
 ## Resolved
 
+---
+
+
+
+C-001 — arrived/5 fifth argument is immutable. The Tier argument in arrived(EventId, Scene, Term, Clock, Tier) is always written as hot by inject_event/3 and never updated. Current tier is tracked exclusively in tier_status(EventId, Tier). Query tier_status to determine current tier; the fifth argument of arrived/5 is unreliable for this purpose after promotion.
+
 *(none yet)*
