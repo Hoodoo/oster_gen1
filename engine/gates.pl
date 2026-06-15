@@ -2,11 +2,13 @@
     gate/4,
     gate_condition/2,
     gate_transform/3,
+    gate_term_filter/2,
     gate_open/1,
     gate_blocked/3,
     gate_transformed/5,
     gate_passed/3,
     declare_gate/4,
+    declare_gate_term_filter/2,
     apply_transform/4,
     attempt_propagation/2,
     propagate_from_scene/2,
@@ -39,12 +41,25 @@
 % for transformed propagations. Together they make all gate hops traversable
 % by provenance_chain/2. See docs/deferred.md I-001.
 
+:- dynamic gate_term_filter/2.
+% gate_term_filter(GateId, TermPattern)
+%
+% If any filter is declared for a gate, only events whose term unifies
+% with at least one declared pattern may cross. Events that match no
+% pattern are blocked and recorded as gate_blocked facts.
+%
+% If no filter is declared for a gate, all terms may cross (existing
+% behaviour preserved).
+
 declare_gate(GateId, SourceScene, DestScene, Direction) :-
     ( gate(GateId, _, _, _) ->
         throw(error(duplicate_gate_id(GateId), context(declare_gate/4, '')))
     ;
         assertz(gate(GateId, SourceScene, DestScene, Direction))
     ).
+
+declare_gate_term_filter(GateId, Pattern) :-
+    assertz(gate_term_filter(GateId, Pattern)).
 
 gate_open(GateId) :-
     gate(GateId, _, _, _),
@@ -57,6 +72,18 @@ apply_transform(_GateId, Term, Term, unchanged).
 attempt_propagation(EventId, GateId) :-
     arrived(EventId, SourceScene, Term, Clock, _),
     gate(GateId, SourceScene, DestScene, _),
+    ( gate_term_filter(GateId, _) ->
+        % At least one filter declared — term must match at least one pattern
+        ( gate_term_filter(GateId, Pattern), \+ \+ Term = Pattern ->
+            true
+        ;
+            assertz(gate_blocked(GateId, EventId, Clock)),
+            !,
+            fail
+        )
+    ;
+        true  % No filter declared — all terms permitted (existing behaviour)
+    ),
     ( gate_open(GateId) ->
         apply_transform(GateId, Term, OutTerm, Status),
         inject_event(DestScene, OutTerm, gate(GateId)),
@@ -78,7 +105,7 @@ attempt_propagation(EventId, GateId) :-
 propagate_from_scene(Scene, EventId) :-
     forall(
         gate(GateId, Scene, _, _),
-        attempt_propagation(EventId, GateId)
+        ( attempt_propagation(EventId, GateId) -> true ; true )
     ).
 
 gates_from_scene(Scene, GateIds) :-

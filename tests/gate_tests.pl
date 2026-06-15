@@ -17,6 +17,7 @@ reset_engine :-
     retractall(gate(_, _, _, _)),
     retractall(gate_condition(_, _)),
     retractall(gate_transform(_, _, _)),
+    retractall(gate_term_filter(_, _)),
     retractall(gate_blocked(_, _, _)),
     retractall(gate_transformed(_, _, _, _, _)),
     retractall(event_counter(_)), assertz(event_counter(0)),
@@ -148,5 +149,30 @@ test(t13_gates_from_scene, [setup(reset_engine)]) :-
     memberchk(g_window, GateIds),
     declare_scene(empty_room),
     gates_from_scene(empty_room, []).
+
+% T14 — term filter blocks non-matching term
+test(t14_term_filter_blocks, [setup(reset_engine)]) :-
+    declare_scene(src),
+    declare_scene(dst),
+    declare_gate(g_filtered, src, dst, lateral),
+    assertz(gates:gate_term_filter(g_filtered, noise(fight))),
+    inject_event(src, strike(5), injected(player)),
+    arrived_key(src, strike(5), _, EventId),
+    % attempt_propagation fails when term filter rejects; absorb the failure
+    ( attempt_propagation(EventId, g_filtered) -> true ; true ),
+    \+ arrived(_, dst, strike(5), _, _),
+    gates:gate_blocked(g_filtered, EventId, _).
+
+% T15 — term filter permits matching term
+test(t15_term_filter_permits, [setup(reset_engine)]) :-
+    declare_scene(src),
+    declare_scene(dst),
+    declare_gate(g_filtered, src, dst, lateral),
+    assertz(gates:gate_term_filter(g_filtered, noise(fight))),
+    inject_event(src, noise(fight), injected(player)),
+    arrived_key(src, noise(fight), _, EventId),
+    attempt_propagation(EventId, g_filtered),
+    arrived(_, dst, noise(fight), _, _),
+    \+ gates:gate_blocked(g_filtered, EventId, _).
 
 :- end_tests(gates).
