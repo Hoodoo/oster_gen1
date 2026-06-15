@@ -16,6 +16,7 @@
 ]).
 
 :- use_module(log).
+:- use_module(clock).
 :- use_module(scenes).
 :- use_module(provenance).
 
