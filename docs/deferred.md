@@ -90,3 +90,24 @@ written as `hot` by `inject_event/3` and never updated. Current tier is tracked
 exclusively in `tier_status(EventId, Tier)`. Query `tier_status` to determine
 current tier — the fifth argument of `arrived/5` is unreliable for this purpose
 after promotion.
+
+### C-002 — Defeat-style rules and `check_no_self_generating_rules`
+
+**Identified:** Session 10 report
+
+A rule that uses `\+ arrived(_, Scene, ConsequenceTerm, _, _)` as a guard to
+prevent re-firing will false-positive on `check_no_self_generating_rules`
+because the consequence functor appears in the conditions. For example, a
+defeat rule whose consequence is `defeated` and whose guard checks
+`\+ arrived(_, Scene, defeated, _, _)` will be flagged even though the rule
+is not genuinely self-generating — it fires once and the deduplication in
+`inject_event/3` prevents re-injection at the same clock tick.
+
+The pattern to prefer for defeat-style rules is to express the "not yet
+triggered" guard through a different predicate (e.g. `aggregate_all/3` to
+count existing consequence events) rather than directly matching the
+consequence term in conditions. This avoids the false positive without
+changing the rule's semantics.
+
+Authors writing rules of the form "fire once when threshold crossed" should
+be aware of this interaction with `check_no_self_generating_rules`.
