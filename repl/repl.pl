@@ -20,11 +20,6 @@
 :- use_module('../catalog/warrior/scene', [current_hp/2,
                                            is_defeated/1]).
 
-% DECISION: gates.pl calls clock_value/1 unqualified without importing clock.
-% Non-module test files accidentally expose it via user; this module file cannot.
-% Inject the predicate directly into the gates module namespace.
-:- assertz((gates:clock_value(V) :- clock:clock_value(V))).
-
 :- dynamic scene_projection/2.
 % scene_projection(Scene, Goal)
 % Goal is called to display state for Scene.
