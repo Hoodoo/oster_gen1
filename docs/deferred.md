@@ -136,3 +136,7 @@ changing the rule's semantics.
 
 Authors writing rules of the form "fire once when threshold crossed" should
 be aware of this interaction with `check_no_self_generating_rules`.
+
+### C-003 — Non-module test files mask missing imports
+Identified: Session 12 report
+Test files that don't declare a module (:- module(...)) run in the user module context where all imported predicates are globally visible. This means a missing use_module in an engine file won't surface as an error during testing if the predicate is imported elsewhere in the test run. The bug only appears when loading from a proper module context. When adding new imports to engine files, verify them by loading the file directly in isolation: swipl -g "use_module('engine/gates')" -t halt.
