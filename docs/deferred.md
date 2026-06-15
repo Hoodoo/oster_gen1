@@ -48,6 +48,31 @@ module-qualified calls — never a new `use_module` between these two modules.
 
 ## Resolved
 
+### I-002 — Inward gates carry all patron events; D8 violated for direct injections
+
+**Identified:** Session 11 report
+**Resolved:** Session 11b, commit `d1ad408`
+
+**Problem:**
+`gate_open/1` received only the GateId — the event term being propagated was not
+accessible to gate conditions. This made per-event term filtering impossible at
+the gate API level. As a result, the tavern's inward gates carried every hot
+event from patron scenes (including directly-injected `strike(5)`) into the tavern
+log, violating D8 ("composite scenes only log what inward gates explicitly
+deposit").
+
+**Resolution:**
+`gate_term_filter/2` added to `engine/gates.pl`. `attempt_propagation/2` checks
+this filter before `gate_open/1`: if any filter is registered for a gate, only
+events whose term unifies with a registered pattern may cross; others are recorded
+as `gate_blocked` and the predicate fails. `propagate_from_scene/2` updated to
+absorb that failure. `declare_gate_term_filter/2` added as the authoring
+convenience predicate. Tavern inward gates now declare
+`gate_term_filter(_, noise(fight))`, restoring D8 fully. T8 in
+`catalog/tavern/tests.pl` asserts the correct `\+ arrived(_, tavern, strike(5), _, _)`.
+
+---
+
 ### I-001 — Untransformed gate propagation leaves provenance chain untraversable
 
 **Identified:** Session 4 report, commit `af6851f` ("Session 4: Fixpoint")
