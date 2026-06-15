@@ -51,7 +51,7 @@ module-qualified calls — never a new `use_module` between these two modules.
 ### I-002 — Inward gates carry all patron events; D8 violated for direct injections
 
 **Identified:** Session 11 report
-**Resolved:** Session 11b, commit `(see session_11b.md)`
+**Resolved:** Session 11b, commit `d1ad408`
 
 **Problem:**
 `gate_open/1` received only the GateId — the event term being propagated was not

@@ -22,7 +22,7 @@
 - catalog/tavern/tests.pl: 17 passed, 0 failed
 
 ## I-002 resolution
-Commit hash: (fill in after commit)
+Commit hash: d1ad408
 
 ## Anomalies, surprises, questions
 
