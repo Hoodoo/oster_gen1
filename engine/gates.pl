@@ -1,3 +1,4 @@
+:- encoding(utf8).
 :- module(gates, [
     gate/4,
     gate_condition/2,

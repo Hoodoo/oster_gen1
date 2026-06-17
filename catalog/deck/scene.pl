@@ -1,3 +1,4 @@
+:- encoding(utf8).
 :- module(deck, [
     declare_deck/1,
     current_order/2,

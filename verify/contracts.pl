@@ -1,3 +1,4 @@
+:- encoding(utf8).
 :- module(contracts, [
     verify_contracts/0,
     check_no_self_generating_rules/0,

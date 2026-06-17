@@ -30,6 +30,13 @@ non-deterministic as written. If strict determinism is needed, wrapping calls
 in `once/1` or adding cuts would resolve it. Defer until catalog sessions
 reveal whether this matters in practice.
 
+**Update (external review, Session 15):** The same class of warning also
+appears in `fixpoint_tests.pl`'s `t11_provenance_chain_gate`,
+`projection_tests.pl`'s `investigation_chain_multi_hop`, and
+`verify_tests.pl`'s `provenance_chain_traverses_untransformed_gate`. All
+harmless for the same reason as the probe predicates. If N-001 is ever
+addressed, sweep all four locations in the same pass rather than just probes.
+
 ---
 
 ### S-001 — Circular import between `gates` and `provenance`

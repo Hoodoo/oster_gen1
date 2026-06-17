@@ -1,3 +1,4 @@
+:- encoding(utf8).
 :- use_module(library(plunit)).
 :- use_module('../../engine/log').
 :- use_module('../../engine/clock').
