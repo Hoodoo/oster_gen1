@@ -54,15 +54,5 @@ parent_event(_EventId, rule(Scene, RuleId), ParentId) :-
 parent_event(_EventId, rule(Scene, RuleId), unknown_rule_trigger(Scene, RuleId)).
 
 provenance_acyclic(EventId) :-
-    provenance_acyclic_(EventId, []).
-
-provenance_acyclic_(EventId, Visited) :-
-    \+ member(EventId, Visited),
-    ( caused_by(EventId, injected(_)) -> true
-    ; caused_by(EventId, simulation_boundary(_)) -> true
-    ; caused_by(EventId, Cause),
-      ( Cause = rule(_, _) -> true
-      ; Cause = gate(_) -> true
-      ; true
-      )
-    ).
+    provenance_chain(EventId, Chain),
+    \+ member(cycle_detected(_), Chain).
