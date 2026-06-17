@@ -1,3 +1,4 @@
+:- encoding(utf8).
 :- module(warrior, [
     declare_warrior/2,
     current_hp/2,

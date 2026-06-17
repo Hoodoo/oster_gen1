@@ -1,3 +1,4 @@
+:- encoding(utf8).
 :- module(propagation, [
     propagation_test/3,
     assert_propagation_test/3,

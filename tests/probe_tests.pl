@@ -1,3 +1,4 @@
+:- encoding(utf8).
 :- use_module(library(plunit)).
 :- use_module('../engine/scenes').
 :- use_module('../engine/gates').

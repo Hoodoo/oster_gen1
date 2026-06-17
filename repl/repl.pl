@@ -1,3 +1,4 @@
+:- encoding(utf8).
 :- module(repl, [start_repl/0]).
 
 :- use_module('../engine/log').

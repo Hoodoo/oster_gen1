@@ -1,3 +1,4 @@
+:- encoding(utf8).
 :- module(fixpoint, [
     advance_world/1,
     world_step/0,
@@ -30,7 +31,6 @@ evaluate_rule(EventId, Scene, RuleId) :-
         ( ground(Template) ->
             ( \+ arrived_key(Scene, Template, Clock, _) ->
                 inject_event(Scene, Template, rule(Scene, RuleId)),
-                arrived_key(Scene, Template, Clock, _NewEventId),
                 record_rule_trigger(RuleId, Scene, EventId)
             ;
                 true

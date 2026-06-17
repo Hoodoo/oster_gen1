@@ -1,3 +1,4 @@
+:- encoding(utf8).
 :- module(tavern_gates, [
     declare_tavern_gates/0
 ]).
