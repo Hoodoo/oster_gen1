@@ -51,7 +51,7 @@ module-qualified calls — never a new `use_module` between these two modules.
 ### I-003 — `provenance_acyclic/1` never traversed past the immediate cause
 
 **Identified:** External review, confirmed against source
-**Resolved:** Session 14, commit <fill in>
+**Resolved:** Session 14, commit `fdee559`
 
 **Problem:**
 `provenance_acyclic/1` was left as a Session 2 stub ("leaf traversal only —
