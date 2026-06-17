@@ -10,6 +10,7 @@
 :- use_module('../projections/legal_actions').
 :- use_module('../projections/why_blocked').
 :- use_module('../projections/investigation').
+:- use_module('../projections/post_fixpoint').
 :- use_module('../verify/contracts').
 :- use_module('../catalog/tavern/scene',  [declare_tavern_world/0,
                                            window_open/1]).
@@ -21,6 +22,7 @@
                                            is_defeated/1]).
 
 :- dynamic scene_projection/2.
+:- discontiguous handle_command/1.
 % scene_projection(Scene, Goal)
 % Goal is called to display state for Scene.
 % Registered at world-load time by register_projections/0.
@@ -99,6 +101,13 @@ handle_command(inject(Scene, Event)) :- !,
     clock_value(Clock),
     format("Injected ~w into ~w at clock ~w~n", [Event, Scene, Clock]).
 
+handle_command(inject(Scene, Event, Source)) :- !,
+    inject_event(Scene, Event, injected(Source)),
+    world_step,
+    clock_value(Clock),
+    format("Injected ~w into ~w (source: ~w) at clock ~w~n",
+           [Event, Scene, Source, Clock]).
+
 handle_command(log(Scene)) :- !,
     print_scene_log(Scene).
 
@@ -111,14 +120,9 @@ handle_command(probe(Scene)) :- !,
     format("  Rule heads: ~w~n", [Heads]),
     format("  Outgoing gates: ~w~n", [Gates]).
 
-% DECISION: The prototype used ':why(Scene, EventTerm)' as the REPL command, relying on
-% SWI-Prolog parsing ':why(S,E)' as ':(why(S,E))'. However, ':' as a prefix operator
-% causes a syntax error in a clause head (Operator expected at column 16). Per task
-% instructions, dropping ':' and using 'why(Scene, EventTerm)' instead. The help text
-% still shows ':why' as the user-facing command name for documentation continuity.
-handle_command(why(Scene, EventTerm)) :- !,
+handle_command(outbound(Scene, EventTerm)) :- !,
     why_blocked(Scene, EventTerm, Explanation),
-    format("~w in ~w: ~w~n", [EventTerm, Scene, Explanation]).
+    format("~w leaving ~w: ~w~n", [EventTerm, Scene, Explanation]).
 
 handle_command(chain(EventId)) :- !,
     ( investigation_chain(EventId, Chain) ->
@@ -157,23 +161,72 @@ handle_command(legal(Scene)) :- !,
                format("  ~w → ~w: ~w~n", [GateId, Dest, Shape]))
     ).
 
+handle_command(scenes) :- !,
+    findall(Root, scene_root(Root), Roots),
+    ( Roots == [] ->
+        format("No scenes declared~n")
+    ;
+        format("Scenes:~n"),
+        forall(member(Root, Roots), print_scene_node(Root, 0))
+    ).
+
+print_scene_node(Scene, Depth) :-
+    Spaces is Depth * 2,
+    tab(Spaces),
+    format("~w~n", [Scene]),
+    findall(Child, scene_parent(Child, Scene), Children),
+    Depth1 is Depth + 1,
+    forall(member(Child, Children), print_scene_node(Child, Depth1)).
+
+handle_command(gates) :- !,
+    findall(g(GateId, Source, Dest, Direction),
+            gate(GateId, Source, Dest, Direction),
+            GateList),
+    ( GateList == [] ->
+        format("No gates declared~n")
+    ;
+        format("Gates:~n"),
+        forall(
+            member(g(GateId, Source, Dest, Direction), GateList),
+            ( ( gate_open(GateId) -> Status = open ; Status = closed ),
+              format("  ~w: ~w -> ~w (~w, ~w)~n",
+                     [GateId, Source, Dest, Direction, Status])
+            )
+        )
+    ).
+
+handle_command(summary) :- !,
+    clock_value(Clock),
+    post_fixpoint_summary(Clock, Changes),
+    ( Changes == [] ->
+        format("No changes at clock ~w~n", [Clock])
+    ;
+        format("Changes at clock ~w:~n", [Clock]),
+        forall(member(change(Scene, Term, Cause), Changes),
+               format("  ~w in ~w (cause: ~w)~n", [Term, Scene, Cause]))
+    ).
+
 handle_command(Unknown) :-
     format("Unknown command: ~w~n", [Unknown]),
     format("Type 'help' for available commands.~n").
 
 print_help :-
     format("Commands (all require trailing period):~n"),
-    format("  inject(Scene, Event)  — inject event and step world~n"),
-    format("  log(Scene)            — show arrived facts for scene~n"),
-    format("  state(Scene)          — show derived state for scene~n"),
-    format("  probe(Scene)          — show vocabulary surface~n"),
-    format("  legal(Scene)          — show currently legal actions~n"),
-    format("  why(Scene, Event)     — explain why event is blocked~n"),
-    format("  chain(EventId)        — show provenance chain~n"),
-    format("  verify                — run verify_contracts~n"),
-    format("  close(Scene)          — declare closure for scene~n"),
-    format("  step                  — step world without injecting~n"),
-    format("  quit                  — exit~n").
+    format("  inject(Scene, Event)         — inject event (source: player) and step world~n"),
+    format("  inject(Scene, Event, Source)  — inject event with an explicit source~n"),
+    format("  log(Scene)                   — show arrived facts for scene~n"),
+    format("  state(Scene)                 — show derived state for scene~n"),
+    format("  probe(Scene)                 — show vocabulary surface~n"),
+    format("  legal(Scene)                 — show currently legal actions~n"),
+    format("  outbound(Scene, Event)        — would this event leave Scene right now, and why not~n"),
+    format("  chain(EventId)                — show provenance chain~n"),
+    format("  summary                       — show what changed at the current clock~n"),
+    format("  scenes                        — list all scenes, hierarchically~n"),
+    format("  gates                         — list all gates, flat~n"),
+    format("  verify                        — run verify_contracts~n"),
+    format("  close(Scene)                  — declare closure for scene~n"),
+    format("  step                          — step world without injecting~n"),
+    format("  quit                          — exit~n").
 
 print_scene_log(Scene) :-
     findall(Clock-EventId-Term-Tier,
