@@ -3,6 +3,7 @@
 :- use_module('../engine/clock').
 :- use_module('../engine/scenes').
 :- use_module('../engine/provenance').
+:- use_module('../engine/gates').
 
 reset_engine :-
     retractall(arrived(_, _, _, _, _)),
@@ -14,7 +15,8 @@ reset_engine :-
     retractall(scene_parent(_, _)),
     retractall(scene_rule(_, _, _, _)),
     retractall(event_counter(_)), assertz(event_counter(0)),
-    retractall(clock_counter(_)), assertz(clock_counter(0)).
+    retractall(clock_counter(_)), assertz(clock_counter(0)),
+    retractall(gates:gate_passed(_, _, _)).
 
 :- begin_tests(scenes_and_provenance).
 
@@ -97,5 +99,12 @@ test(t11_scene_root, [setup(reset_engine)]) :-
     declare_scene_parent(tavern, city),
     scene_root(city),
     \+ scene_root(tavern).
+
+test(t12_provenance_acyclic_detects_cycle, [setup(reset_engine)]) :-
+    assertz(provenance:caused_by(evt_loop_a, gate(g_loop))),
+    assertz(provenance:caused_by(evt_loop_b, gate(g_loop))),
+    assertz(gates:gate_passed(g_loop, evt_loop_b, evt_loop_a)),
+    assertz(gates:gate_passed(g_loop, evt_loop_a, evt_loop_b)),
+    \+ provenance_acyclic(evt_loop_a).
 
 :- end_tests(scenes_and_provenance).

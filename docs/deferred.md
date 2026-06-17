@@ -48,6 +48,33 @@ module-qualified calls — never a new `use_module` between these two modules.
 
 ## Resolved
 
+### I-003 — `provenance_acyclic/1` never traversed past the immediate cause
+
+**Identified:** External review, confirmed against source
+**Resolved:** Session 14, commit `fdee559`
+
+**Problem:**
+`provenance_acyclic/1` was left as a Session 2 stub ("leaf traversal only —
+Session 4 extends") and never actually extended. Session 4 extended
+`provenance_chain/2` to full multi-hop traversal but its prompt scoped that
+session as the only permitted change to `engine/provenance.pl`, and
+`provenance_acyclic/1` was never revisited. Its `Visited` accumulator was
+passed but never grown — the predicate checked only the immediate event's
+cause and returned, so `check_provenance_acyclic` in `verify_contracts`
+succeeded unconditionally for any event with a `caused_by/2` fact, regardless
+of whether the full chain contained a cycle. The existing T8 test only
+exercised independently-injected events with no chain depth, so nothing
+caught this.
+
+**Resolution:**
+`provenance_acyclic/1` now reuses the (correct) `provenance_chain/2`
+traversal and fails if the resulting chain contains a `cycle_detected(_)`
+step. The dead `provenance_acyclic_/2` helper was removed. A new test
+hand-constructs a 2-cycle via direct `caused_by/2` and `gate_passed/3`
+assertions and confirms the fixed predicate now correctly rejects it.
+
+---
+
 ### I-002 — Inward gates carry all patron events; D8 violated for direct injections
 
 **Identified:** Session 11 report
