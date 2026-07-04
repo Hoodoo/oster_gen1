@@ -183,7 +183,7 @@ test(t13_propagation_coverage_inward, [setup(reset_engine)]) :-
 
 % T14 — outward gate blocked when window closed
 % Window starts open from setup; close it via event injection, then verify
-% that noise(fight) (the gate's term filter) is blocked by the gate condition.
+% that noise(fight) (which passes the term filter) is blocked by the gate condition.
 % NOTE: propagation_coverage iterates over DestHeads (guards_alerted) which is
 % blocked by the term filter before reaching the gate condition, so we test
 % blocking directly via event injection instead.

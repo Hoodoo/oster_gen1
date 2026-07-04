@@ -4,11 +4,11 @@
 
 ### Scene hierarchy reorg and window event-sourcing
 
-- `catalog/tavern/scene.pl` — introduced `world` as explicit root; made `tavern` and `street` siblings under `world`; replaced `window_open/1` dynamic fact with `window_opened`/`window_closed` events; added `window_is_open/1` as event-sourced projection; injected initial `window_opened(window)` event at setup with `injected(setup)` provenance; removed `assertz(window_open(tavern))` from load.
+- `catalog/tavern/scene.pl` — introduced `world` as explicit root; made `tavern` and `street` siblings under `world`; replaced `window_open/1` dynamic fact with `window_opened`/`window_closed` events; added `window_is_open/1` as event-sourced projection; injected bare atom `window_opened` at setup with `injected(setup)` provenance; removed dynamic declaration and exported `window_is_open/1` in place of `window_open/1`.
 
 ### Gate direction and term filters
 
-- `catalog/tavern/gates.pl` — changed `tavern_noise_to_street` gate direction from `downward` to `lateral`; added `noise(fight)` term filter to prevent `window_opened` events from reaching street; updated import to `use_module('../street/scene')` for lateral cross-reference.
+- `catalog/tavern/gates.pl` — changed `tavern_noise_to_street` gate direction from `downward` to `lateral`; added `noise(fight)` term filter to prevent `window_opened` events from reaching street; updated `use_module(scene, ...)` import to replace `window_open/1` with `window_is_open/1`.
 
 ### Test updates
 
@@ -38,7 +38,7 @@ All 11 suites:
 
 **153 tests total, 0 failed.**
 
-Verification: `grep -r window_open . --include='*.pl'` returns no results. All dynamic window state has been eliminated.
+Verification: `grep -r "window_open/1" . --include='*.pl'` and a manual search for dynamic declarations confirm the old predicate is gone. Note: `grep -r window_open` (without the arity) will match substrings like `window_opened` and `window_closed` — that is expected and correct.
 
 ## Stubs left for future sessions
 
@@ -64,6 +64,6 @@ T14 originally tested `propagation_coverage(tavern_noise_to_street, Report)` exp
 
 ## Notes for the human
 
-- The `window` entity (window object being opened/closed) is now properly distinguished from the `window_open` fact. Event payloads carry the specific `window` identifier.
+- `window_opened` and `window_closed` are bare atoms (no arguments). Window state is now tracked by which event arrived most recently, not by a named window identifier.
 - The hierarchy is now cleanly modeled: `world` contains `tavern` and `street` as independent branches, with lateral gates connecting them rather than hierarchical (downward) gates.
 - The `noise(fight)` term filter prevents coupling between window events and street alerts—a guard should only be alerted by actual fights, not window activity.
