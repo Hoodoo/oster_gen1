@@ -13,8 +13,7 @@
 :- use_module('../projections/investigation').
 :- use_module('../projections/post_fixpoint').
 :- use_module('../verify/contracts').
-:- use_module('../catalog/tavern/scene',  [declare_tavern_world/0,
-                                           window_open/1]).
+:- use_module('../catalog/tavern/scene',  [declare_tavern_world/0]).
 :- use_module('../catalog/tavern/gates',  [declare_tavern_gates/0]).
 :- use_module('../catalog/deck/scene',    [current_order/2,
                                            deck_empty/1,
@@ -61,7 +60,6 @@ print_warrior_state(Scene) :-
 load_world :-
     declare_tavern_world,
     declare_tavern_gates,
-    assertz(tavern_scene:window_open(tavern)),
     register_projections,
     format("World loaded: tavern (patron_a, patron_b, street, window open)~n").
 

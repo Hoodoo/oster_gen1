@@ -12,8 +12,7 @@
 :- use_module('../../verify/propagation').
 :- use_module('../../verify/invariants').
 :- use_module(scene, [
-    declare_tavern_world/0,
-    window_open/1
+    declare_tavern_world/0
 ]).
 :- use_module(gates, [
     declare_tavern_gates/0
@@ -38,7 +37,6 @@ reset_engine :-
     retractall(fixpoint:fixpoint_depth_exceeded(_)),
     retractall(fixpoint:rule_grounding_failed(_, _)),
     retractall(gates:gate_term_filter(_, _)),
-    retractall(tavern_scene:window_open(_)),
     retractall(log:event_counter(_)), assertz(log:event_counter(0)),
     retractall(clock:clock_counter(_)), assertz(clock:clock_counter(0)).
 
@@ -51,12 +49,16 @@ setup_tavern :-
 % T1 — scene hierarchy declared correctly
 test(t1_scene_hierarchy, [setup(reset_engine)]) :-
     setup_tavern,
+    scenes:scene_type(world, composite),
     scenes:scene_type(tavern, composite),
     scenes:scene_type(patron_a, leaf),
     scenes:scene_type(patron_b, leaf),
     scenes:scene_type(street, leaf),
+    scenes:scene_parent(tavern, world),
+    scenes:scene_parent(street, world),
     scenes:scene_parent(patron_a, tavern),
-    scenes:scene_parent(street, tavern).
+    scenes:scene_parent(patron_b, tavern),
+    \+ scenes:scene_parent(street, tavern).
 
 % T2 — strike in patron generates noise(fight) in same patron
 test(t2_strike_generates_noise, [setup(reset_engine)]) :-
@@ -83,6 +85,11 @@ test(t4_noise_propagates_to_tavern, [setup(reset_engine)]) :-
 % T5 — noise blocked at street when window closed
 test(t5_noise_blocked_window_closed, [setup(reset_engine)]) :-
     setup_tavern,
+    % Advance clock past the setup injection, then close the window
+    fixpoint:world_step,
+    log:inject_event(tavern, window_closed, injected(player)),
+    fixpoint:world_step,
+    % Now inject the strike — window_closed is most recent
     log:inject_event(patron_a, strike(5), injected(player)),
     fixpoint:world_step,
     \+ log:arrived(_, street, noise(fight), _, _),
@@ -91,7 +98,6 @@ test(t5_noise_blocked_window_closed, [setup(reset_engine)]) :-
 % T6 — noise reaches street when window open
 test(t6_noise_reaches_street_window_open, [setup(reset_engine)]) :-
     setup_tavern,
-    assertz(tavern_scene:window_open(tavern)),
     log:inject_event(patron_a, strike(5), injected(player)),
     fixpoint:world_step,
     log:arrived(_, patron_a, noise(fight), _, _),
@@ -101,7 +107,6 @@ test(t6_noise_reaches_street_window_open, [setup(reset_engine)]) :-
 % T7 — guards_alerted fires when noise reaches street
 test(t7_guards_alerted, [setup(reset_engine)]) :-
     setup_tavern,
-    assertz(tavern_scene:window_open(tavern)),
     log:inject_event(patron_a, strike(5), injected(player)),
     fixpoint:world_step,
     log:arrived(_, street, guards_alerted, _, _).
@@ -111,7 +116,6 @@ test(t7_guards_alerted, [setup(reset_engine)]) :-
 % to tavern. Only noise(fight) — the patron rule's consequence — arrives there.
 test(t8_d8_strike_not_in_tavern, [setup(reset_engine)]) :-
     setup_tavern,
-    assertz(tavern_scene:window_open(tavern)),
     log:inject_event(patron_a, strike(5), injected(player)),
     fixpoint:world_step,
     \+ log:arrived(_, tavern, strike(5), _, _).
@@ -128,14 +132,16 @@ test(t9_patron_isolation, [setup(reset_engine)]) :-
 % T10 — window closed after being open: noise blocked again
 test(t10_window_toggles, [setup(reset_engine)]) :-
     setup_tavern,
-    assertz(tavern_scene:window_open(tavern)),
+    % Window is open from setup — inject strike and step
     log:inject_event(patron_a, strike(5), injected(player)),
-    fixpoint:world_step,       % clock 1: noise reaches street (window open)
+    fixpoint:world_step,
     log:arrived(_, street, noise(fight), _, _),
-    fixpoint:world_step,       % advance clock (window still open)
-    retractall(tavern_scene:window_open(_)),
+    % Close the window
+    log:inject_event(tavern, window_closed, injected(player)),
+    fixpoint:world_step,
+    % Inject another strike — should now be blocked at street
     log:inject_event(patron_b, strike(5), injected(player)),
-    fixpoint:world_step,       % patron_b's noise blocked at street (window closed)
+    fixpoint:world_step,
     clock:clock_value(FinalClock),
     \+ log:arrived(_, street, noise(fight), FinalClock, _),
     gates:gate_blocked(tavern_noise_to_street, _, _).
@@ -143,7 +149,6 @@ test(t10_window_toggles, [setup(reset_engine)]) :-
 % T11 — two patrons both contribute noise to tavern
 test(t11_two_patrons_contribute, [setup(reset_engine)]) :-
     setup_tavern,
-    assertz(tavern_scene:window_open(tavern)),
     log:inject_event(patron_a, strike(5), injected(player)),
     fixpoint:world_step,       % clock 1: patron_a noise in tavern
     log:inject_event(patron_b, taunt, injected(player)),
@@ -156,7 +161,6 @@ test(t11_two_patrons_contribute, [setup(reset_engine)]) :-
 % T12 — investigation_chain from guards_alerted traces full causal path
 test(t12_investigation_chain, [setup(reset_engine)]) :-
     setup_tavern,
-    assertz(tavern_scene:window_open(tavern)),
     log:inject_event(patron_a, strike(5), injected(player)),
     fixpoint:world_step,
     log:arrived(AlertedId, street, guards_alerted, _, _),
@@ -177,12 +181,21 @@ test(t13_propagation_coverage_inward, [setup(reset_engine)]) :-
     propagation_coverage(patron_a_noise_to_tavern, Report),
     Report = [].
 
-% T14 — propagation_coverage for outward gate, window closed
-% Destination is street with template guards_alerted; window is closed → blocked.
+% T14 — outward gate blocked when window closed
+% Window starts open from setup; close it via event injection, then verify
+% that noise(fight) (which passes the term filter) is blocked by the gate condition.
+% NOTE: propagation_coverage iterates over DestHeads (guards_alerted) which is
+% blocked by the term filter before reaching the gate condition, so we test
+% blocking directly via event injection instead.
 test(t14_propagation_coverage_outward_blocked, [setup(reset_engine)]) :-
     setup_tavern,
-    propagation_coverage(tavern_noise_to_street, Report),
-    member(result(_, blocked), Report).
+    fixpoint:world_step,
+    log:inject_event(tavern, window_closed, injected(player)),
+    fixpoint:world_step,
+    log:inject_event(tavern, noise(fight), injected(player)),
+    fixpoint:world_step,
+    \+ log:arrived(_, street, noise(fight), _, _),
+    gates:gate_blocked(tavern_noise_to_street, _, _).
 
 % T15 — verify_contracts passes on tavern world
 test(t15_verify_contracts, [setup(reset_engine)]) :-
@@ -203,6 +216,16 @@ test(t17_probe_tavern, [setup(reset_engine)]) :-
     setup_tavern,
     probes:probe(tavern, vocab(Heads, Gates)),
     Heads = [],
-    member(gate_info(tavern_noise_to_street, street, downward), Gates).
+    member(gate_info(tavern_noise_to_street, street, lateral), Gates).
+
+% T18 — window_opened setup event has injected(setup) provenance
+% This is the main concrete payoff of event-sourcing the window:
+% the initial state is now a real, traceable log event rather than an
+% invisible dynamic fact.
+test(t18_window_setup_provenance, [setup(reset_engine)]) :-
+    setup_tavern,
+    log:arrived(WinId, tavern, window_opened, 0, _),
+    provenance:provenance_chain(WinId, Chain),
+    Chain = [step(WinId, injected(setup))].
 
 :- end_tests(tavern).
