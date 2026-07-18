@@ -46,7 +46,7 @@ record_rule_trigger(RuleId, Scene, TriggeringEventId) :-
     assertz(rule_trigger(RuleId, Scene, TriggeringEventId)).
 
 process_hot_event(EventId) :-
-    arrived(EventId, Scene, _Term, _Clock, hot),
+    arrived(EventId, Scene, _Term, _Clock, _),
     forall(
         scene_rule(RuleId, Scene, _Cond, _Template),
         evaluate_rule(EventId, Scene, RuleId)
@@ -55,18 +55,15 @@ process_hot_event(EventId) :-
 
 advance_world(MaxDepth) :-
     MaxDepth > 0,
-    log_count(Before),
-    hot_events(HotEventIds),
-    forall(
-        member(EventId, HotEventIds),
-        process_hot_event(EventId)
-    ),
-    log_count(After),
-    ( After > Before ->
+    findall(E, log:unprocessed(E), Frontier),
+    ( Frontier == [] ->
+        true
+    ;
+        forall(member(EventId, Frontier),
+               ( process_hot_event(EventId),
+                 retract(log:unprocessed(EventId)) )),
         Depth1 is MaxDepth - 1,
         advance_world(Depth1)
-    ;
-        true
     ).
 advance_world(0) :-
     clock_value(Clock),

@@ -24,6 +24,7 @@ reset_engine :-
     retractall(log:arrived_key(_, _, _, _)),
     retractall(log:tier_status(_, _)),
     retractall(log:tier_transition(_, _, _, _)),
+    retractall(log:unprocessed(_)),
     retractall(provenance:caused_by(_, _)),
     retractall(scenes:scene(_)),
     retractall(scenes:scene_parent(_, _)),

@@ -9,7 +9,8 @@
     caused_by/2,
     fresh_event_id/1,
     event_counter/1,
-    update_tier_status/2
+    update_tier_status/2,
+    unprocessed/1
 ]).
 
 :- use_module(library(aggregate)).
@@ -31,6 +32,14 @@
 :- dynamic event_counter/1.
 event_counter(0).
 
+:- dynamic unprocessed/1.
+% unprocessed(EventId)
+% Frontier marker: this event has not yet been through a fixpoint pass.
+% Asserted by inject_event/3 alongside the log facts.
+% Retracted by the fixpoint after processing.
+% Engine bookkeeping only — not part of the world log; retracting it
+% does not violate the append-only invariant.
+
 fresh_event_id(EventId) :-
     retract(event_counter(N)),
     N1 is N + 1,
@@ -45,7 +54,8 @@ inject_event(Scene, Term, Cause) :-
         assertz(arrived(EventId, Scene, Term, Clock, hot)),
         assertz(arrived_key(Scene, Term, Clock, EventId)),
         assertz(tier_status(EventId, hot)),
-        assertz(caused_by(EventId, Cause))
+        assertz(caused_by(EventId, Cause)),
+        assertz(unprocessed(EventId))
     ).
 
 hot_events(Events) :-

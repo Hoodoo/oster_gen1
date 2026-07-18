@@ -23,6 +23,7 @@ reset_engine :-
     retractall(log:arrived_key(_, _, _, _)),
     retractall(log:tier_status(_, _)),
     retractall(log:tier_transition(_, _, _, _)),
+    retractall(log:unprocessed(_)),
     retractall(provenance:caused_by(_, _)),
     retractall(scenes:scene(_)),
     retractall(scenes:scene_parent(_, _)),
@@ -227,5 +228,31 @@ test(t18_window_setup_provenance, [setup(reset_engine)]) :-
     log:arrived(WinId, tavern, window_opened, 0, _),
     provenance:provenance_chain(WinId, Chain),
     Chain = [step(WinId, injected(setup))].
+
+% T19 — blocked event does not resurrect when gate later opens
+% Guard: conceptual guide states "gate failure is a terminal fact".
+% DECISION: session_17_prompt.md's spec for this test omits a world_step
+% between setup_tavern and injecting window_closed. setup_tavern injects
+% window_opened at clock 0 without advancing the clock, so without an
+% intervening world_step, window_closed lands at clock 0 too — a tie that
+% window_is_open/1 resolves in favour of window_opened (documented NOTE in
+% catalog/tavern/scene.pl), leaving the window open and failing the test.
+% Adding fixpoint:world_step here (matching the idiom already used by T5,
+% T10, T14) advances the clock past the setup injection first, matching
+% the prompt's stated assumption that window_closed is "more recent".
+test(t19_blocked_event_does_not_resurrect, [setup(reset_engine)]) :-
+    setup_tavern,
+    fixpoint:world_step,
+    % Close the window and inject a strike
+    inject_event(tavern, window_closed, injected(player)),
+    world_step,                            % window_closed processed
+    inject_event(patron_a, strike(5), injected(player)),
+    world_step,                            % cascade: noise in patron + tavern; blocked at street
+    \+ log:arrived(_, street, noise(fight), _, _),
+    % Now open the window — no new strike injected
+    log:inject_event(tavern, window_opened, injected(player)),
+    fixpoint:world_step,
+    % Street log must still be empty — no new noise arrived
+    \+ log:arrived(_, street, noise(fight), _, _).
 
 :- end_tests(tavern).
