@@ -85,6 +85,26 @@ module-qualified calls — never a new `use_module` between these two modules.
 
 ## Resolved
 
+### I-005 — `declare_closure` and `promote_to_cold` were disconnected
+
+**Identified:** Playtest observation, Session 19
+**Resolved:** Session 19, commit `e420db4`
+
+**Problem:**
+`declare_closure/2` injected `closed(Scene, clock(N))` as a normal event
+but never called `promote_to_cold`. The REPL's `close(Scene)` command called
+`declare_closure` and `world_step` but also never promoted events. The tier
+promotion machinery (Session 6) was correct and complete but had no caller
+on the closure path. `log(Scene)` after `close(Scene)` showed all prior
+events still marked `hot`.
+
+**Resolution:**
+`promote_to_cold(Scene, Clock)` added to the REPL's `close(Scene)` handler,
+after `world_step`, using the pre-step clock value so all events up to and
+including the closure event itself are promoted. `declare_closure/2` itself
+is unchanged — it remains a low-level primitive. A regression test (T14 in
+`lifecycle_tests.pl`) confirms the combined pattern works.
+
 ### I-004 — Hot events re-fire rules and gates on every tick
 
 **Identified:** External review, post-Session 15, commit `68222fe`
