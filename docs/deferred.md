@@ -39,6 +39,23 @@ addressed, sweep all four locations in the same pass rather than just probes.
 
 ---
 
+### N-002 — rule_trigger provenance may record a non-causal frontier event
+
+**Identified:** External review (I-004 report), Session 17
+**Severity:** Low — chains are traversable; recorded trigger is a peer
+frontier event, not a fabricated one
+
+`record_rule_trigger/3` stores whichever frontier event the fixpoint loop
+happened to be iterating when a rule fired. Rule conditions never reference
+that EventId — they query `arrived/5` directly — so when a rule has
+multi-fact conditions the recorded trigger may be a peer event that
+coincidentally triggered the same fixpoint pass, not the true causal
+antecedent. Single-condition rules (the current common case) are unaffected.
+Resolve if/when multi-condition rules become prevalent enough to make
+incorrect trigger attribution noticeable in `chain` output.
+
+---
+
 ### S-001 — Circular import between `gates` and `provenance`
 
 **Identified:** Session 8, commit `c2b42ce`
@@ -54,6 +71,26 @@ module-qualified calls — never a new `use_module` between these two modules.
 ---
 
 ## Resolved
+
+### I-004 — Hot events re-fire rules and gates on every tick
+
+**Identified:** External review, post-Session 15, commit `68222fe`
+**Resolved:** Session 17, commit `<fill in>`
+
+**Problem:**
+`advance_world/1` consumed `hot_events/1`, which returns every hot-tier
+event — not just newly arrived ones. Events stay hot until lifecycle
+closure, so a single injected event re-fired its full rule and gate cascade
+on every subsequent tick. This violated the guide's terminal-gate-failure
+invariant ("gate failure is a terminal fact... the old failed event does not
+resurrect") and caused unbounded log growth with zero input.
+
+**Resolution:**
+`unprocessed/1` added to `engine/log.pl` as a frontier marker, asserted in
+`inject_event/3` and retracted by the fixpoint after processing. `advance_world/1`
+now iterates over the frontier rather than the hot set. `process_hot_event/1`'s
+tier-check coupling relaxed to `_`. All `reset_engine` helpers updated to
+clear the frontier. Two regression tests added.
 
 ### I-003 — `provenance_acyclic/1` never traversed past the immediate cause
 

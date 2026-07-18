@@ -13,6 +13,7 @@ reset_engine :-
     retractall(tier_status(_, _)),
     retractall(tier_transition(_, _, _, _)),
     retractall(caused_by(_, _)),
+    retractall(unprocessed(_)),
     retractall(scene(_)),
     retractall(scene_parent(_, _)),
     retractall(scene_rule(_, _, _, _)),
@@ -176,5 +177,23 @@ test(t13_integration, [setup(reset_engine)]) :-
     once(arrived_key(tavern, noise(fight), _, TavernNoiseId)),
     once(provenance_chain(TavernNoiseId, TavernChain)),
     memberchk(step(TavernNoiseId, gate(g_up)), TavernChain).
+
+% T14 — regression: frontier is consumed, not the hot set; no re-derivation
+% on subsequent steps with no new input (I-004).
+test(t_no_rederivation_on_subsequent_steps, [setup(reset_engine)]) :-
+    assertz(scenes:scene(src)),
+    assertz(scenes:scene(dst)),
+    assertz(scenes:scene_rule(r_echo, src,
+                              arrived(_, src, signal, _, _), echo)),
+    assertz(gates:gate(g_out, src, dst, lateral)),
+    inject_event(src, signal, injected(player)),
+    world_step,
+    log_count(CountAfterStep1),
+    world_step,
+    log_count(CountAfterStep2),
+    world_step,
+    log_count(CountAfterStep3),
+    CountAfterStep1 =:= CountAfterStep2,
+    CountAfterStep2 =:= CountAfterStep3.
 
 :- end_tests(fixpoint).
