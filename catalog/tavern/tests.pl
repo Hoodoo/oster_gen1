@@ -255,4 +255,45 @@ test(t19_blocked_event_does_not_resurrect, [setup(reset_engine)]) :-
     % Street log must still be empty — no new noise arrived
     \+ log:arrived(_, street, noise(fight), _, _).
 
+% T20 — amulet charged, alert reaches mob_lair
+test(t20_amulet_alert_reaches_mob_lair, [setup(reset_engine)]) :-
+    setup_tavern,
+    fixpoint:world_step,    % process setup events (window_opened, amulet_charged)
+    log:inject_event(barkeeper, use_amulet, injected(player)),
+    fixpoint:world_step,
+    log:arrived(_, barkeeper, alert_sent, _, _),
+    log:arrived(_, mob_lair, alert_sent, _, _),
+    log:arrived(_, mob_lair, mob_mobilized, _, _).
+
+% T21 — amulet spent, alert blocked
+test(t21_amulet_spent_alert_blocked, [setup(reset_engine)]) :-
+    setup_tavern,
+    fixpoint:world_step,    % process setup events
+    log:inject_event(barkeeper, amulet_spent, injected(player)),
+    fixpoint:world_step,    % amulet_spent now most recent
+    log:inject_event(barkeeper, use_amulet, injected(player)),
+    fixpoint:world_step,
+    log:arrived(_, barkeeper, alert_sent, _, _),
+    \+ log:arrived(_, mob_lair, alert_sent, _, _),
+    gates:gate_blocked(barkeeper_amulet_alert, _, _).
+
+% T22 — chain from mob_mobilized traces back to use_amulet
+% DECISION: spec calls provenance:provenance_chain/2 but asserts against the
+% step(_, Scene, Term, Cause) 4-arg shape. provenance_chain/2 actually returns
+% step(EventId, Cause) (2-arg — see T18, which asserts exactly that shape).
+% The 4-arg enriched shape is produced by investigation_chain/2 (see T12,
+% which uses the same pattern). Using investigation_chain/2 here to match the
+% test's own assertion shape, consistent with the T12 precedent.
+test(t22_mob_mobilized_chain, [setup(reset_engine)]) :-
+    setup_tavern,
+    fixpoint:world_step,
+    log:inject_event(barkeeper, use_amulet, injected(player)),
+    fixpoint:world_step,
+    log:arrived(MobId, mob_lair, mob_mobilized, _, _),
+    investigation_chain(MobId, Chain),
+    Chain \= [],
+    last(Chain, step(_, barkeeper, use_amulet, injected(player))),
+    member(step(_, mob_lair, alert_sent, _), Chain),
+    member(step(_, barkeeper, alert_sent, _), Chain).
+
 :- end_tests(tavern).

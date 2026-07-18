@@ -19,6 +19,19 @@ Entry types:
 
 ## Open
 
+### N-003 — "most recent qualifying event" projection is duplicated across two gate conditions
+
+**Identified:** Session 18
+**Severity:** Low — duplication is intentional and documented inline
+
+`window_is_open/1` and `amulet_is_charged/1` in `catalog/tavern/scene.pl`
+share identical structure: findall over two event terms, msort, last check.
+The abstraction was deliberately deferred in both sessions (16 and 18)
+pending a third use case. Extract a shared `most_recent_state/3` helper
+(or similar) when a third caller appears.
+
+---
+
 ### N-001 — Probe predicates are non-deterministic
 
 **Identified:** Session 5, no specific commit

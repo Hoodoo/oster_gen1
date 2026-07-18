@@ -13,7 +13,9 @@
 :- use_module('../projections/investigation').
 :- use_module('../projections/post_fixpoint').
 :- use_module('../verify/contracts').
-:- use_module('../catalog/tavern/scene',  [declare_tavern_world/0]).
+:- use_module('../catalog/tavern/scene',  [declare_tavern_world/0,
+                                          window_is_open/1,
+                                          amulet_is_charged/1]).
 :- use_module('../catalog/tavern/gates',  [declare_tavern_gates/0]).
 :- use_module('../catalog/deck/scene',    [current_order/2,
                                            deck_empty/1,
@@ -61,7 +63,7 @@ load_world :-
     declare_tavern_world,
     declare_tavern_gates,
     register_projections,
-    format("World loaded: tavern (patron_a, patron_b, street, window open)~n").
+    format("World loaded: world → [tavern → [patron_a, patron_b, barkeeper], street, mob_lair]~n").
 
 start_repl :-
     format("~nOster REPL — developer interface~n"),
