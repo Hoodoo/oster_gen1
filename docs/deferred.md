@@ -75,7 +75,7 @@ module-qualified calls — never a new `use_module` between these two modules.
 ### I-004 — Hot events re-fire rules and gates on every tick
 
 **Identified:** External review, post-Session 15, commit `68222fe`
-**Resolved:** Session 17, commit `<fill in>`
+**Resolved:** Session 17, commit `0261896`
 
 **Problem:**
 `advance_world/1` consumed `hot_events/1`, which returns every hot-tier
