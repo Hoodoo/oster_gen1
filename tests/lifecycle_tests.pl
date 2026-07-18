@@ -191,4 +191,22 @@ test(update_tier_status_correctness, [setup(reset_engine)]) :-
     aggregate_all(count, tier_status(EventId, _), N),
     N =:= 1.
 
+% T14 — all scene events are cold after declare_closure + promote_to_cold
+% Guard: closing a scene must settle its history, not just inject the closed event.
+test(t14_closure_demotes_events_to_cold, [setup(reset_engine)]) :-
+    assertz(scenes:scene(room)),
+    inject_event(room, signal, injected(player)),
+    inject_event(room, echo, injected(player)),
+    clock_value(Clock),
+    declare_closure(room, Clock),
+    world_step,
+    promote_to_cold(room, Clock),
+    % No hot events should remain in room
+    findall(E,
+            ( log:arrived(E, room, _, _, _),
+              log:tier_status(E, hot)
+            ),
+            StillHot),
+    StillHot = [].
+
 :- end_tests(lifecycle).

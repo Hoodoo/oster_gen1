@@ -8,7 +8,7 @@ reset_log :-
     retractall(tier_status(_, _)),
     retractall(tier_transition(_, _, _, _)),
     retractall(caused_by(_, _)),
-    retractall(unprocessed(_)),
+    retractall(log:unprocessed(_)),
     retractall(event_counter(_)),
     assertz(event_counter(0)),
     retractall(clock_counter(_)),

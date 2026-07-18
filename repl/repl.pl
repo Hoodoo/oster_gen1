@@ -8,6 +8,7 @@
 :- use_module('../engine/fixpoint').
 :- use_module('../engine/probes').
 :- use_module('../lifecycle/closure').
+:- use_module('../lifecycle/tiers').
 :- use_module('../projections/legal_actions').
 :- use_module('../projections/why_blocked').
 :- use_module('../projections/investigation').
@@ -145,6 +146,7 @@ handle_command(close(Scene)) :- !,
     clock_value(Clock),
     declare_closure(Scene, Clock),
     world_step,
+    promote_to_cold(Scene, Clock),
     format("Declared closure for ~w at clock ~w~n", [Scene, Clock]).
 
 handle_command(step) :- !,
