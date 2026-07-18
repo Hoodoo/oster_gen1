@@ -88,7 +88,7 @@ module-qualified calls — never a new `use_module` between these two modules.
 ### I-005 — `declare_closure` and `promote_to_cold` were disconnected
 
 **Identified:** Playtest observation, Session 19
-**Resolved:** Session 19, commit <fill in>
+**Resolved:** Session 19, commit `e420db4`
 
 **Problem:**
 `declare_closure/2` injected `closed(Scene, clock(N))` as a normal event
